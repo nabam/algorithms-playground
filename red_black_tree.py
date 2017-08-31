@@ -3,7 +3,6 @@
 
 from random import shuffle
 from math import log
-from enum import Enum
 c = 0
 
 class Color:
