@@ -6,7 +6,9 @@ from math import log
 from enum import Enum
 c = 0
 
-Color = Enum('Colors', 'RED BLACK')
+class Color:
+    RED = 0
+    BLACK = 1
 
 def empty_node(parent = None):
     return {'value': None, 'parent': parent, 'color': Color.BLACK}
