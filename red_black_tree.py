@@ -5,187 +5,249 @@ from random import shuffle
 from math import log
 c = 0
 
-class Color:
-    RED = 0
-    BLACK = 1
+class TreeNode(object):
+    _value  = None
+    _left   = None
+    _right  = None
 
-def empty_node(parent = None):
-    return {'value': None, 'parent': parent, 'color': Color.BLACK}
+    def _create_leafs(self, left, right):
+        self._left = left
+        self._right = right
 
-def grandparent(node):
-    if node['parent'] != None:
-        return node['parent']['parent']
-    else:
-        return None
+    def left(self):
+        return self._left
 
-def uncle(node):
-    g = grandparent(node)
-    if g is None:
-        return None
-    if node['parent'] is g['left']:
-        return g['right']
-    if node['parent'] is g['right']:
-        return g['left']
+    def right(self):
+        return self._right
 
-def rotate_left(node):
-    p = node['parent']
-    r = node['right']
+    def value(self):
+        return self._value
 
-    node['parent'] = r
-    node['right'] = r['left']
-    r['left']['parent'] = node
+    def set_value(self, value):
+        self._value = value
+        self._create_leafs(TreeNode(), TreeNode())
 
-    if p != None:
-        if p['left'] is node:
-            p['left'] = r
+    def is_empty(self):
+        return self._value is None
+
+class RBTreeNode(TreeNode):
+    _parent = None
+    _color  = None
+
+    def __init__(self, parent = None):
+        super(RBTreeNode, self).__init__()
+        self._parent = parent
+        self.set_black()
+
+    def set_value(self, value):
+        self._value = value
+        self.set_red()
+        self._create_leafs(RBTreeNode(self), RBTreeNode(self))
+
+    def parent(self):
+        return self._parent
+
+    def color(self):
+        return self._color
+
+    def set_red(self):
+        self._color = 1
+
+    def set_black(self):
+        self._color = 0
+
+    def is_black(self):
+        return self._color == 0
+
+    def is_red(self):
+        return self._color == 1
+
+    def grandparent(self):
+        if self._parent != None:
+            return self._parent._parent
         else:
-            p['right'] = r
+            return None
 
-    r['parent'] = p
-    r['left'] = node
+    def uncle(self):
+        g = self.grandparent()
+        if g is None:
+            return None
+        if self._parent is g._left:
+            return g._right
+        if self._parent is g._right:
+            return g._left
 
-    return
+    def rotate_left(self):
+        p = self._parent
+        r = self._right
 
-def rotate_right(node):
-    p = node['parent']
-    l = node['left']
+        self._parent    = r
+        self._right     = r._left
+        r._left._parent = self
 
-    node['parent'] = l
-    node['left'] = l['right']
-    l['right']['parent'] = node
-
-    if p != None:
-        if p['left'] is node:
-            p['left'] = l
-        else:
-            p['right'] = l
-
-    l['parent'] = p
-    l['right'] = node
-
-    return
-
-def balance(n):
-    global c
-
-    u = uncle(n)
-    g = grandparent(n)
-
-    if n['parent'] is None:
-        n['color'] = Color.BLACK
-        return None
-
-    if n['parent']['color'] == Color.BLACK:
-        return None
-
-    if u != None and u['color'] == Color.RED:
-        n['parent']['color'] = Color.BLACK
-        u['color'] = Color.BLACK
-        g['color'] = Color.RED
-        c += 1
-        return balance(g)
-
-    if n is n['parent']['right'] and n['parent'] is g['left']:
-        rotate_left(n['parent'])
-        n = n['left']
-    elif n is n['parent']['left'] and n['parent'] is g['right']:
-        rotate_right(n['parent'])
-        n = n['right']
-
-    n['parent']['color'] = Color.BLACK
-    g['color'] = Color.RED
-
-    if n is n['parent']['left']:
-        rotate_right(g)
-    else:
-        rotate_left(g)
-
-    if grandparent(g) is None:
-        return g['parent']
-    else:
-        return None
-
-def insert(tree, value):
-    global c
-
-    node = tree
-    while True:
-        c += 1
-
-        if node['value'] is None:
-            node['value']  = value
-            node['color'] = Color.RED
-            node['left']     = empty_node(node)
-            node['right']     = empty_node(node)
-
-            # dump(tree, 0)
-            # print('---\/\/\/---')
-            res = balance(node)
-            if res != None:
-                # dump(res, 0)
-                # print('---')
-                return res
+        if p != None:
+            if p._left is self:
+                p._left = r
             else:
-                # dump(tree, 0)
-                # print('---')
-                return tree
+                p._right = r
 
-        if value >= node['value']:
-            node = node['right']
+        r._parent = p
+        r._left   = self
+
+        return r
+
+    def rotate_right(self):
+        p = self._parent
+        l = self._left
+
+        self._parent     = l
+        self._left       = l._right
+        l._right._parent = self
+
+        if p != None:
+            if p._left is self:
+                p._left = l
+            else:
+                p._right = l
+
+        l._parent = p
+        l._right  = self
+
+        return l
+
+class Tree(object):
+    _head = None
+
+    def __init__(self):
+        self._head = TreeNode()
+
+    def insert(self, value):
+        global c
+
+        node = tree._head
+        while True:
+            c += 1
+
+            if node.is_empty():
+                node.set_value(value)
+                return node
+
+            if value >= node.value():
+                node = node.right()
+            else:
+                node = node.left()
+
+    def in_order(self):
+        stack = []
+        node = tree._head
+
+        while True:
+            if node.value() != None:
+                stack.append([node.right(), node.value()])
+                node = node.left()
+            else:
+                if len(stack) == 0 and node.is_empty():
+                    break
+
+                [node, v] = stack.pop()
+
+                yield v
+
+    def depth(self, node = None, depth = 0):
+        if node == None:
+            return self.depth(self._head)
+
+        if node.is_empty():
+            return depth
+
+        depth += 1
+
+        left_depth = self.depth(node.left(), depth)
+        right_depth = self.depth(node.right(), depth)
+
+        if left_depth > right_depth:
+            return left_depth
         else:
-            node = node['left']
+            return right_depth
 
+    def dump(self, node = None, d = 0):
+        if node == None:
+            return self.dump(self._head)
 
-def in_order(tree):
-    stack = []
-    depth = 0
-    node = tree
+        if (node.value() != None):
+            self.dump(node.left(), d + 1)
+            print('%s%s' % ('  '*d, node.value()))
+            self.dump(node.right(), d + 1)
 
-    while True:
-        if node['value'] != None:
-            stack.append([node['right'], node['value']])
-            node = node['left']
+class RBTree(Tree):
+    def __init__(self):
+        self._head = RBTreeNode()
+
+    def insert(self, value):
+        node = super(RBTree, self).insert(value)
+        self.__balance(node)
+        return node
+
+    def __balance(self, node):
+        global c
+
+        u = node.uncle()
+        g = node.grandparent()
+
+        if node.parent() is None:
+            node.set_black()
+            return
+
+        if node.parent().is_black():
+            return
+
+        if u != None and u.is_red():
+            node.parent().set_black()
+            u.set_black()
+            g.set_red()
+            c += 1
+            self.__balance(g)
+            return
+
+        n = node
+        if n is node.parent().right() and node.parent() is g.left():
+            node.parent().rotate_left()
+            n = node.left()
+        elif n is node.parent().left() and node.parent() is g.right():
+            node.parent().rotate_right()
+            n = node.right()
+
+        n.parent().set_black()
+        g.set_red()
+
+        top = None
+
+        if n is n.parent().left():
+            top = g.rotate_right()
         else:
-            [node, v] = stack.pop()
+            top = g.rotate_left()
 
-            d = 0
-            p = node['parent']
-            while p != None:
-                d += 1
-                p = p['parent']
+        if top.parent() is None:
+            self._head = top
 
-            if d > depth:
-                depth = d
-            yield v
+        return
 
-        if len(stack) == 0 and node['value'] == None:
-            break
+n = 1000
 
-    print('Depth: %s' % depth)
-
-def dump(tree, d):
-    if (tree['value'] != None):
-        dump(tree['left'], d+1)
-        print('%s%s' % ('  '*d, tree['value']))
-        dump(tree['right'], d+1)
-
-n = 10000
-
-tree = empty_node()
 data = list(range(0, n))
 shuffle(data)
 
+tree = RBTree()
 for v in data:
-    tree = insert(tree, v)
+    tree.insert(v)
+tree.dump()
 
-dump(tree, 0)
-result = list(in_order(tree))
-
+result = list(tree.in_order())
 t = result[0]
-
 for x in result[1:]:
     if( x != t + 1 ):
         print('Assertion failed on %s!' % x)
     t = x;
 
+print('Depth: %s' % tree.depth())
 print('len: %s, n*log(n): %s, insert_time: %s, insert_k: %s' % (n, n*log(n), c, c/n/log(n)))
