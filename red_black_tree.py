@@ -1,34 +1,7 @@
-#!/usr/bin/python3.5
+#!/usr/bin/env python3
 
-
-from random import shuffle
-from math import log
-c = 0
-
-class TreeNode(object):
-    _value  = None
-    _left   = None
-    _right  = None
-
-    def _create_leafs(self, left, right):
-        self._left = left
-        self._right = right
-
-    def left(self):
-        return self._left
-
-    def right(self):
-        return self._right
-
-    def value(self):
-        return self._value
-
-    def set_value(self, value):
-        self._value = value
-        self._create_leafs(TreeNode(), TreeNode())
-
-    def is_empty(self):
-        return self._value is None
+import test
+from tree import Tree, TreeNode
 
 class RBTreeNode(TreeNode):
     _parent = None
@@ -115,70 +88,6 @@ class RBTreeNode(TreeNode):
 
         return l
 
-class Tree(object):
-    _head = None
-
-    def __init__(self):
-        self._head = TreeNode()
-
-    def insert(self, value):
-        global c
-
-        node = tree._head
-        while True:
-            c += 1
-
-            if node.is_empty():
-                node.set_value(value)
-                return node
-
-            if value >= node.value():
-                node = node.right()
-            else:
-                node = node.left()
-
-    def in_order(self):
-        stack = []
-        node = tree._head
-
-        while True:
-            if node.value() != None:
-                stack.append([node.right(), node.value()])
-                node = node.left()
-            else:
-                if len(stack) == 0 and node.is_empty():
-                    break
-
-                [node, v] = stack.pop()
-
-                yield v
-
-    def depth(self, node = None, depth = 0):
-        if node == None:
-            return self.depth(self._head)
-
-        if node.is_empty():
-            return depth
-
-        depth += 1
-
-        left_depth = self.depth(node.left(), depth)
-        right_depth = self.depth(node.right(), depth)
-
-        if left_depth > right_depth:
-            return left_depth
-        else:
-            return right_depth
-
-    def dump(self, node = None, d = 0):
-        if node == None:
-            return self.dump(self._head)
-
-        if (node.value() != None):
-            self.dump(node.left(), d + 1)
-            print('%s%s' % ('  '*d, node.value()))
-            self.dump(node.right(), d + 1)
-
 class RBTree(Tree):
     def __init__(self):
         self._head = RBTreeNode()
@@ -189,8 +98,6 @@ class RBTree(Tree):
         return node
 
     def __balance(self, node):
-        global c
-
         u = node.uncle()
         g = node.grandparent()
 
@@ -205,7 +112,6 @@ class RBTree(Tree):
             node.parent().set_black()
             u.set_black()
             g.set_red()
-            c += 1
             self.__balance(g)
             return
 
@@ -232,22 +138,5 @@ class RBTree(Tree):
 
         return
 
-n = 1000
-
-data = list(range(0, n))
-shuffle(data)
-
-tree = RBTree()
-for v in data:
-    tree.insert(v)
-tree.dump()
-
-result = list(tree.in_order())
-t = result[0]
-for x in result[1:]:
-    if( x != t + 1 ):
-        print('Assertion failed on %s!' % x)
-    t = x;
-
-print('Depth: %s' % tree.depth())
-print('len: %s, n*log(n): %s, insert_time: %s, insert_k: %s' % (n, n*log(n), c, c/n/log(n)))
+if __name__ == "__main__":
+    test.tree_test(RBTree(), 1000)
