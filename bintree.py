@@ -2,7 +2,7 @@
 
 import test
 
-class TreeNode(object):
+class BinTreeNode(object):
     _value  = None
     _left   = None
     _right  = None
@@ -22,16 +22,16 @@ class TreeNode(object):
 
     def set_value(self, value):
         self._value = value
-        self._create_leafs(TreeNode(), TreeNode())
+        self._create_leafs(BinTreeNode(), BinTreeNode())
 
     def is_empty(self):
         return self._value is None
 
-class Tree(object):
+class BinTree(object):
     _head = None
 
     def __init__(self):
-        self._head = TreeNode()
+        self._head = BinTreeNode()
 
     def insert(self, value):
         node = self._head
@@ -70,22 +70,20 @@ class Tree(object):
             print('%s%s' % ('  '*d, node.value()))
             self.dump(node.right(), d + 1)
 
-    def depth(self, node = None, depth = 0):
+    def height(self, node = None, height = 0):
         if node == None:
-            return self.depth(self._head)
+            return self.height(self._head)
 
         if node.is_empty():
-            return depth
+            return height - 1
 
-        depth += 1
+        left_height = self.height(node.left(), height + 1)
+        right_height = self.height(node.right(), height + 1)
 
-        left_depth = self.depth(node.left(), depth)
-        right_depth = self.depth(node.right(), depth)
-
-        if left_depth > right_depth:
-            return left_depth
+        if left_height > right_height:
+            return left_height
         else:
-            return right_depth
+            return right_height
 
 if __name__ == "__main__":
-    test.tree_test(Tree(), 1000)
+    test.tree_test(BinTree(), 1000)

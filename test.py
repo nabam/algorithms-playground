@@ -28,4 +28,4 @@ def tree_test(tree, n):
     tree = create(data, tree)
     dump_tree(tree)
     verify_sorted(list(tree.in_order()))
-    print('Depth: %s' % tree.depth())
+    print('Height: %s' % tree.height())

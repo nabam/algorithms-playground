@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 import test
-from tree import Tree, TreeNode
+from bintree import BinTree, BinTreeNode
 
-class RBTreeNode(TreeNode):
+class RBTreeNode(BinTreeNode):
     _parent = None
     _color  = None
 
@@ -88,7 +88,7 @@ class RBTreeNode(TreeNode):
 
         return l
 
-class RBTree(Tree):
+class RBTree(BinTree):
     def __init__(self):
         self._head = RBTreeNode()
 
