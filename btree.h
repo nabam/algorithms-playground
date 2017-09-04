@@ -19,6 +19,7 @@ typedef struct btree {
 btree_node* btree_node_create(int, size_t);
 void btree_node_destroy(btree_node*);
 int btree_node_insert(btree_node*, void*, int (*)(void*, void*));
+int btree_node_get_pos(btree_node*, void*, int (*)(void*, void*));
 
 btree* btree_create(int, size_t);
 void btree_insert(btree*, void*, int (*)(void*, void*));

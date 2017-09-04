@@ -22,8 +22,9 @@ btree_node* btree_node_create(int m, size_t s) {
 }
 
 void btree_node_destroy(btree_node* node) {
-  free(node->children);
+  /*printf("%p %p %p\n", (void*)node, node->keys, (void*)node->children);*/
   free(node->keys);
+  free(node->children);
   free(node);
 }
 
@@ -51,20 +52,13 @@ btree* btree_create(int m, size_t s) {
 }
 
 btree_node* btree_find_node(btree_node* node, void* key, int (*cmp)(void* a, void* b)) {
-  int i = 0;
-
-  for (i; i < node->allocated; i++) {
-    if (!cmp(key, (node->keys + node->key_size * i))) {
-      return node->children[i];
-    }
-  }
-  return node->children[i];
+  int p = btree_node_get_pos(node, key, cmp);
+  return node->children[p];
 }
 
 void btree_insert(btree* tree, void* key, int (*cmp)(void* a, void* b)) {
   btree_node *node, *child;
   child = tree->head;
-
   do {
     node = child;
     child = btree_find_node(child, key, cmp);
@@ -73,6 +67,7 @@ void btree_insert(btree* tree, void* key, int (*cmp)(void* a, void* b)) {
   if (node->allocated < tree->m - 1) {
     btree_node_insert(node, key, cmp);
   } else {
+
     btree_split(tree, node, key, cmp, NULL, NULL);
     btree_node_destroy(node);
   }
@@ -81,33 +76,11 @@ void btree_insert(btree* tree, void* key, int (*cmp)(void* a, void* b)) {
 void btree_split(btree* tree, btree_node* node, void* key, int (*cmp)(void* a, void* b),
                  btree_node* l, btree_node* r) {
 
-  int n_keys = node->allocated + 1;
-  int med = n_keys >> 1;
-  void* keys = malloc(node->key_size * n_keys);
-  btree_node** children = malloc(sizeof(btree_node*) * (n_keys + 1));
-  btree_node* parent = node->parent;
+  void *mkey;
+  int middle = (node->allocated + 1) >> 1;
+  int pos = btree_node_get_pos(node, key, cmp);
+  btree_node *parent = node->parent;
   btree_node *left, *right;
-
-  int j = 0, i = 0;
-  while(j < node->allocated && cmp(key, (node->keys + node->key_size * i))) {
-    children[i] = node->children[j];
-    memcpy(keys + node->key_size * i++,
-           node->keys + node->key_size * j++,
-           node->key_size);
-  }
-
-  children[i] = l;
-  memcpy(keys + node->key_size * i++,
-     key,
-     node->key_size);
-  children[i] = r;
-
-  while(i < n_keys) {
-    children[i + 1] = node->children[j + 1];
-    memcpy(keys + node->key_size * i++,
-           node->keys + node->key_size * j++,
-           node->key_size);
-  }
 
   if (parent == NULL) {
     parent = btree_node_create(tree->m, node->key_size);
@@ -116,35 +89,102 @@ void btree_split(btree* tree, btree_node* node, void* key, int (*cmp)(void* a, v
   left = btree_node_create(tree->m, node->key_size);
   left->parent = parent;
 
-  memcpy(left->keys,
-         keys,
-         node->key_size * med);
-  memcpy(left->children,
-         children,
-         sizeof(btree_node*) * (med + 1));
-
-  for (int i = 0; i <= med; i++) {
-    if (left->children[i] != NULL) left->children[i]->parent = left;
-  }
-  left->allocated = med;
-
   right = btree_node_create(tree->m, node->key_size);
   right->parent = parent;
 
-  memcpy(right->keys,
-         keys + node->key_size * (med + 1),
-         node->key_size * (n_keys - (med + 1)));
-  memcpy(right->children,
-         children + med + 1,
-         sizeof(btree_node*) * (n_keys - med));
+  if (pos < middle) {
+    memcpy(left->keys,
+           node->keys,
+           node->key_size * pos);
+    memcpy(left->children,
+           node->children,
+           sizeof(btree_node*) * pos);
 
-  for (int i = 0; i <= n_keys - med; i++) {
+    memcpy(left->keys + node->key_size * (pos + 1),
+           node->keys + node->key_size * pos,
+           node->key_size * (middle - 1 - pos));
+    memcpy(left->children + pos + 2,
+           node->children + pos + 1,
+           sizeof(btree_node*) * (middle - 1 - pos));
+
+    memcpy(right->keys,
+           node->keys + node->key_size * middle,
+           node->key_size * (node->allocated - middle));
+    memcpy(right->children,
+           node->children + middle,
+           sizeof(btree_node*) * (node->allocated - middle + 1));
+
+    memcpy(left->keys + node->key_size * pos,
+           key,
+           node->key_size);
+    left->children[pos] = l;
+    left->children[pos + 1] = r;
+
+    mkey = node->keys + node->key_size * (middle - 1);
+  } else if (pos > middle) {
+    int rpos = pos - middle - 1;
+
+    memcpy(left->keys,
+           node->keys,
+           node->key_size * middle);
+    memcpy(left->children,
+           node->children,
+           sizeof(btree_node*) * (middle + 1));
+
+    memcpy(right->keys,
+           node->keys + node->key_size * (middle + 1),
+           node->key_size * rpos);
+    memcpy(right->children,
+           node->children + middle + 1,
+           sizeof(btree_node*) * rpos);
+
+    memcpy(right->keys + node->key_size * (rpos + 1),
+           node->keys + node->key_size * pos,
+           node->key_size * (node->allocated - pos));
+    memcpy(right->children + rpos + 2,
+           node->children + pos + 1,
+           sizeof(btree_node*) * (node->allocated - pos));
+
+    memcpy(right->keys + node->key_size * (rpos),
+           key,
+           node->key_size);
+    right->children[rpos] = l;
+    right->children[rpos + 1] = r;
+
+    mkey = node->keys + node->key_size * middle;
+  } else {
+    memcpy(left->keys,
+           node->keys,
+           node->key_size * middle);
+    memcpy(left->children,
+           node->children,
+           sizeof(btree_node*) * middle);
+
+    memcpy(right->keys,
+           node->keys + node->key_size * middle,
+           node->key_size * (node->allocated - middle));
+    memcpy(right->children + 1,
+           node->children + middle + 1,
+           sizeof(btree_node*) * (node->allocated - middle));
+
+    left->children[middle] = l;
+    right->children[0] = r;
+    mkey = key;
+  }
+
+  left->allocated = middle;
+  right->allocated = node->allocated - middle;
+
+  for (int i = 0; i <= left->allocated; i++) {
+    if (left->children[i] != NULL) left->children[i]->parent = left;
+  }
+
+  for (int i = 0; i <= right->allocated; i++) {
     if (right->children[i] != NULL) right->children[i]->parent = right;
   }
-  right->allocated = n_keys - (med + 1);
 
   if (parent->allocated < tree->m - 1) {
-    int pos = btree_node_insert(parent, keys + med * node->key_size, cmp);
+    int pos = btree_node_insert(parent, mkey, cmp);
     memmove(parent->children + pos + 1,
             parent->children + pos,
             sizeof(btree_node*) * (parent->allocated - pos));
@@ -156,37 +196,57 @@ void btree_split(btree* tree, btree_node* node, void* key, int (*cmp)(void* a, v
       tree->head = parent;
     }
   } else {
-    btree_split(tree, parent, keys + med * node->key_size, cmp, left, right);
+    btree_split(tree, parent, mkey, cmp, left, right);
   }
 
-  free(keys);
-  free(children);
+}
+
+int btree_node_get_pos(btree_node* node, void* key, int (*cmp)(void* a, void* b)) {
+  int m, l = 0, r = node->allocated - 1;
+
+  if (r < 0) {
+    return 0;
+  }
+
+  while (1) {
+    m = (r - l) >> 1;
+    if (cmp(key, (node->keys + node->key_size * r)) == 1) {
+      return r + 1;
+    } else if (cmp(key, (node->keys + node->key_size * l)) < 1){
+      return l;
+    } else if (cmp(key, (node->keys + node->key_size * r)) == 0 || m == 0) {
+      return r;
+    } else if (cmp(key, (node->keys + node->key_size * (l + m))) == 1) {
+      l = l + m;
+    } else {
+      r = l + m;
+    }
+  }
 }
 
 int btree_node_insert(btree_node* node, void* key, int (*cmp)(void* a, void* b)) {
-  int i = node->allocated;
-  for (i; i > 0; i--) {
-    if (cmp(key, (node->keys + node->key_size * (i - 1)))) {
-      break;
-    }
-    memcpy(node->keys + node->key_size * i,
-           node->keys + node->key_size * (i - 1),
-           node->key_size);
+  int pos = btree_node_get_pos(node, key, cmp);
+  if (pos < node->allocated) {
+    memmove(node->keys + node->key_size * (pos + 1),
+        node->keys + node->key_size * pos,
+        node->key_size * (node->allocated - pos));
   }
-  memcpy(node->keys + node->key_size * i,
+  memcpy(node->keys + node->key_size * pos,
          key,
          node->key_size);
 
   node->allocated++;
-  return i;
+  return pos;
 }
 
 /* for testing */
 int cmp_int(void* a, void* b) {
-  return *(int *)a > *(int *)b;
+  if (*(int *)a > *(int *)b) return 1;
+  else if (*(int *)a == *(int *)b) return 0;
+  else return -1;
 }
 
-char* array_dump(void* str, int len) {
+char* array_dump(void* str, int len, btree_node** children) {
   int i, buffer = 255;
   char *result = malloc(buffer*sizeof(char)), *pos = result;
 
@@ -199,10 +259,20 @@ char* array_dump(void* str, int len) {
   if (i > 0) {
     *(pos - 2) = ']';
     *(pos - 1) = '\0';
+    pos--;
   } else {
     *pos++ = ']';
     *pos = '\0';
   }
+
+  /**pos++ = ' ';*/
+  /**pos++ = '(';*/
+  /*for (i = 0; i < len + 1 && pos < result + buffer - 1; i++) {*/
+    /*pos += snprintf(pos, result - pos, "%p, ", (void*)children[i]);*/
+  /*}*/
+  /**(pos - 2) = ')';*/
+  /**(pos - 1) = '\0';*/
+
   return result;
 }
 
@@ -212,7 +282,7 @@ char* tree_dump(btree_node* node, int depth) {
   if (node == NULL) return NULL;
 
   for (int i = 0; i < depth; i++) printf("  ");
-  char* d = array_dump(node->keys, node->allocated);
+  char* d = array_dump(node->keys, node->allocated, node->children);
   puts(d);
   free(d);
 
@@ -222,9 +292,9 @@ char* tree_dump(btree_node* node, int depth) {
 }
 
 int main() {
-  btree* tree = btree_create(3, sizeof(int));
-  for(int i = 0; i < 30; i++) {
-    int r = rand() >> 20;
+  btree* tree = btree_create(20, sizeof(int));
+  for(int i = 0; i < 1000; i += 1) {
+    int r = rand() << 1 >> 18;
     btree_insert(tree, &r, &cmp_int);
   }
   tree_dump(tree->head, 0);
