@@ -114,36 +114,40 @@ void btree_split(btree* tree, btree_node* node, void* key, int (*cmp)(void* a, v
   }
 
   left = btree_node_create(tree->m, node->key_size);
-  for (i = 0; i < med; i++) {
-    left->parent = parent;
-    memcpy(left->keys + node->key_size * i,
-           keys + node->key_size * i,
-           node->key_size);
-    left->children[i] = children[i];
-    if (children[i] != NULL) children[i]->parent = left;
+  left->parent = parent;
+
+  memcpy(left->keys,
+         keys,
+         node->key_size * med);
+  memcpy(left->children,
+         children,
+         sizeof(btree_node*) * (med + 1));
+
+  for (int i = 0; i <= med; i++) {
+    if (left->children[i] != NULL) left->children[i]->parent = left;
   }
-  left->allocated = i;
-  left->children[i] = children[i];
-  if (children[i] != NULL) children[i]->parent = left;
+  left->allocated = med;
 
   right = btree_node_create(tree->m, node->key_size);
-  for (i = med + 1, j = 0; i < n_keys; i++, j++) {
-    right->parent = parent;
-    memcpy(right->keys + node->key_size * j,
-           keys + node->key_size * i,
-           node->key_size);
-    right->children[j] = children[i];
-    if (children[i] != NULL) children[i]->parent = right;
+  right->parent = parent;
+
+  memcpy(right->keys,
+         keys + node->key_size * (med + 1),
+         node->key_size * (n_keys - (med + 1)));
+  memcpy(right->children,
+         children + med + 1,
+         sizeof(btree_node*) * (n_keys - med));
+
+  for (int i = 0; i <= n_keys - med; i++) {
+    if (right->children[i] != NULL) right->children[i]->parent = right;
   }
-  right->allocated = j;
-  right->children[j] = children[i];
-  if (children[i] != NULL) children[i]->parent = right;
+  right->allocated = n_keys - (med + 1);
 
   if (parent->allocated < tree->m - 1) {
     int pos = btree_node_insert(parent, keys + med * node->key_size, cmp);
-    for (int i = parent -> allocated; i > pos + 1; i--) {
-      parent->children[i] = parent->children[i - 1];
-    }
+    memmove(parent->children + pos + 1,
+            parent->children + pos,
+            sizeof(btree_node*) * (parent->allocated - pos));
 
     parent->children[pos] = left;
     parent->children[pos + 1] = right;
@@ -218,8 +222,8 @@ char* tree_dump(btree_node* node, int depth) {
 }
 
 int main() {
-  btree* tree = btree_create(20, sizeof(int));
-  for(int i = 0; i < 1000; i++) {
+  btree* tree = btree_create(3, sizeof(int));
+  for(int i = 0; i < 30; i++) {
     int r = rand() >> 20;
     btree_insert(tree, &r, &cmp_int);
   }
