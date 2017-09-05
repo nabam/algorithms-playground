@@ -23,6 +23,6 @@ int btree_node_get_pos(btree_node*, void*, int (*)(void*, void*));
 
 btree* btree_create(int, size_t);
 void btree_insert(btree*, void*, int (*)(void*, void*));
-void btree_split(btree*, btree_node*, void*, int (*)(void*, void*), btree_node*, btree_node*);
+void btree_split(btree*, btree_node*, void*, int (*)(void*, void*));
 btree_node* btree_find_node(btree_node*, void*, int (*)(void*, void*));
 void btree_destroy(btree*);
