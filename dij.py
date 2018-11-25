@@ -37,22 +37,18 @@ def dijkstra(matrix: Matrix, source: str, target: str = None) \
     queue = []
     distances = {}
     trees = {}
+    visited = set()
 
     distances[source] = 0.0
     heapq.heappush(queue, (0.0, source))
 
-    unvisited = set(vrtx for row in matrix.items() for
-                    subsets in [row[0]] + [subvrtx[0]
-                                           for subvrtx in row[1]] for
-                    vrtx in subsets)
-
-    while unvisited:
+    while queue:
         u = heapq.heappop(queue)[1]
 
-        if u not in unvisited:
+        if u in visited:
             continue
 
-        unvisited.remove(u)
+        visited.add(u)
 
         if u == target:
             break
