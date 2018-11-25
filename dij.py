@@ -3,6 +3,7 @@
 import pydot
 import math
 import sys
+import heapq
 from typing import List, Dict, Set, Tuple
 
 
@@ -27,29 +28,50 @@ def build_neighbours(edges: List[pydot.Edge]) \
 
     return neighbours
 
+# Helper for naive implementation
 def get_next_vertex(unvisited: Set[str], distance: Dict[str, float]) -> str:
     d = {n: distance[n] for n in unvisited}
     return min(d, key=d.get)
 
 
+# Helper for priority queue
+def dec_priority(queue: List[Tuple[float, str]], name: str, value: float):
+    for n in queue:
+        if n[1] == name:
+            queue.remove(n)
+            heapq.heapify(queue)
+            heapq.heappush(queue, (value, name))
+            return
+
+    raise Exception("No such element in heap")
+
+
 def dijkstra(graph: pydot.Graph, source: str, target: str = None) \
         -> Tuple[Dict[str, List[str]], Dict[str, int]]:
 
-    unvisited = set()
+    # unvisited = set()
+    unvisited = []
     distance = {}
     previous = {}
 
     neighbours = build_neighbours(graph.get_edges())
     for node in graph.get_nodes():
-        distance[node.get_name()] = math.inf
-        previous[node.get_name()] = []
-        unvisited.add(node.get_name())
+        name = node.get_name()
+        previous[name] = []
+
+        if name != source:
+            distance[name] = math.inf
+            # unvisited.add(name)
+            heapq.heappush(unvisited, (math.inf, name))
 
     distance[source] = 0.0
+    # unvisited.add(source)
+    heapq.heappush(unvisited, (0.0, source))
 
     while len(unvisited) > 0:
-        u = get_next_vertex(unvisited, distance)
-        unvisited.remove(u)
+        # u = get_next_vertex(unvisited, distance)
+        # unvisited.remove(u)
+        u = heapq.heappop(unvisited)[1]
 
         if u == target:
             break
@@ -60,6 +82,7 @@ def dijkstra(graph: pydot.Graph, source: str, target: str = None) \
                 alt = distance[u] + d
                 if alt < distance[v]:
                     distance[v] = alt
+                    dec_priority(unvisited, v, alt)
                     previous[v] = [u]
                 elif alt == distance[v]:
                     previous[v].append(u)
