@@ -1,10 +1,11 @@
 #!/usr/bin/env python3.6
 
-import pydot
+import heapq
 import math
 import sys
-import heapq
-from typing import List, Dict, Set, Tuple
+from typing import Dict, List, Tuple
+
+import pydot
 
 Matrix = Dict[str, List[Tuple[str, float]]]
 
@@ -29,6 +30,7 @@ def build_matrix(edges: List[pydot.Edge]) -> Matrix:
 
     return matrix
 
+
 def dijkstra(matrix: Matrix, source: str, target: str = None) \
         -> Tuple[Dict[str, List[str]], Dict[str, int]]:
 
@@ -44,7 +46,7 @@ def dijkstra(matrix: Matrix, source: str, target: str = None) \
                                            for subvrtx in row[1]] for
                     vrtx in subsets)
 
-    while len(unvisited) > 0:
+    while unvisited:
         u = heapq.heappop(queue)[1]
 
         if u not in unvisited:
@@ -68,6 +70,7 @@ def dijkstra(matrix: Matrix, source: str, target: str = None) \
 
     return (trees, distances)
 
+
 def update_graph(graph: pydot.Graph,
                  trees: Dict[str, List[str]],
                  current: str) -> None:
@@ -86,7 +89,8 @@ def update_graph(graph: pydot.Graph,
 
 
 def decorate_graph(graph: pydot.Graph, source: str, destination: str,
-                 distance: Dict[str, int]) -> None:
+                   distance: Dict[str, int]) -> None:
+
     for edge in graph.get_edges():
         edge.get_attributes()['label'] = edge.get_attributes()['length']
 
