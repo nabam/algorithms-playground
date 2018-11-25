@@ -1,0 +1,55 @@
+graph sample1 {
+  A
+  B
+  C
+  D
+  E
+  F
+  G
+  I
+  X
+  Z
+
+  A -- B [length=1]
+  A -- D [length=4]
+  A -- E [length=1]
+  B -- C [length=10]
+  C -- G [length=12]
+  D -- C [length=3]
+  D -- E [length=7]
+  E -- F [length=9]
+  E -- I [length=15]
+  G -- I [length=2]
+  X -- E [length=19]
+  X -- A [length=11]
+  X -- B [length=17]
+  I -- X [length=4]
+}
+
+digraph sample2 {
+  A
+  B
+  C
+  D
+  E
+  F
+  G
+  I
+  X
+  Z
+
+  A -> B [length=1]
+  A -> D [length=4]
+  A -> E [length=1]
+  B -> C [length=6]
+  G -> C [length=12]
+  D -> C [length=3]
+  D -> E [length=7]
+  F -> E [length=9]
+  E -> I [length=15]
+  G -> I [length=2]
+  X -> E [length=19]
+  X -> A [length=11]
+  X -> B [length=17]
+  I -> X [length=4]
+}
