@@ -6,95 +6,75 @@ import sys
 import heapq
 from typing import List, Dict, Set, Tuple
 
+Matrix = Dict[str, List[Tuple[str, float]]]
 
-def build_neighbours(edges: List[pydot.Edge]) \
-        -> Dict[str, List[Tuple[str, float]]]:
-    neighbours = {}
+
+def build_matrix(edges: List[pydot.Edge]) -> Matrix:
+    matrix = {}
     for e in edges:
         src = e.get_source()
         dst = e.get_destination()
         dist = float(e.get_attributes()["length"])
 
-        if src in neighbours.keys():
-            neighbours[src].append((dst, dist))
+        if src in matrix.keys():
+            matrix[src].append((dst, dist))
         else:
-            neighbours[src] = [(dst, dist)]
+            matrix[src] = [(dst, dist)]
 
         if e.get_parent_graph().get_top_graph_type() == "graph":
-            if dst in neighbours.keys():
-                neighbours[dst].append((src, dist))
+            if dst in matrix.keys():
+                matrix[dst].append((src, dist))
             else:
-                neighbours[dst] = [(src, dist)]
+                matrix[dst] = [(src, dist)]
 
-    return neighbours
+    return matrix
 
-# Helper for naive implementation
-def get_next_vertex(unvisited: Set[str], distance: Dict[str, float]) -> str:
-    d = {n: distance[n] for n in unvisited}
-    return min(d, key=d.get)
-
-
-# Helper for priority queue
-def dec_priority(queue: List[Tuple[float, str]], name: str, value: float):
-    for n in queue:
-        if n[1] == name:
-            queue.remove(n)
-            heapq.heapify(queue)
-            heapq.heappush(queue, (value, name))
-            return
-
-    raise Exception("No such element in heap")
-
-
-def dijkstra(graph: pydot.Graph, source: str, target: str = None) \
+def dijkstra(matrix: Matrix, source: str, target: str = None) \
         -> Tuple[Dict[str, List[str]], Dict[str, int]]:
 
-    # unvisited = set()
-    unvisited = []
-    distance = {}
-    previous = {}
+    queue = []
+    distances = {}
+    trees = {}
 
-    neighbours = build_neighbours(graph.get_edges())
-    for node in graph.get_nodes():
-        name = node.get_name()
-        previous[name] = []
+    distances[source] = 0.0
+    heapq.heappush(queue, (0.0, source))
 
-        if name != source:
-            distance[name] = math.inf
-            # unvisited.add(name)
-            heapq.heappush(unvisited, (math.inf, name))
-
-    distance[source] = 0.0
-    # unvisited.add(source)
-    heapq.heappush(unvisited, (0.0, source))
+    unvisited = set(vrtx for row in matrix.items() for
+                    subsets in [row[0]] + [subvrtx[0]
+                                           for subvrtx in row[1]] for
+                    vrtx in subsets)
 
     while len(unvisited) > 0:
-        # u = get_next_vertex(unvisited, distance)
-        # unvisited.remove(u)
-        u = heapq.heappop(unvisited)[1]
+        u = heapq.heappop(queue)[1]
+
+        if u not in unvisited:
+            continue
+
+        unvisited.remove(u)
 
         if u == target:
             break
 
-        if u in neighbours:
-            for n in neighbours[u]:
+        if u in matrix:
+            for n in matrix[u]:
                 v, d = n
-                alt = distance[u] + d
-                if alt < distance[v]:
-                    distance[v] = alt
-                    dec_priority(unvisited, v, alt)
-                    previous[v] = [u]
-                elif alt == distance[v]:
-                    previous[v].append(u)
+                alt = distances.get(u, math.inf) + d
+                if alt < distances.get(v, math.inf):
+                    distances[v] = alt
+                    heapq.heappush(queue, (alt, v))
+                    trees[v] = [u]
+                elif alt == distances[v]:
+                    trees[v].append(u)
 
-    return (previous, distance)
+    return (trees, distances)
 
-def update_graph(graph: pydot.Graph, previous: Dict[str, List[str]],
-                 distance: Dict[str, int], current: str) -> None:
+def update_graph(graph: pydot.Graph,
+                 trees: Dict[str, List[str]],
+                 current: str) -> None:
 
-    if current in previous:
-        for p in previous[current]:
-            update_graph(graph, previous, distance, p)
+    if current in trees:
+        for p in trees[current]:
+            update_graph(graph, trees, p)
 
             e = graph.get_edge(p, current)[0]
             e.get_attributes()['color'] = "darkgreen"
@@ -103,13 +83,18 @@ def update_graph(graph: pydot.Graph, previous: Dict[str, List[str]],
     n = graph.get_node(current)[0].get_attributes()
     n['fillcolor'] = "green"
     n['style'] = "filled"
-    n['label'] = '"' \
-        + current + ":" + str(distance[current]) \
-        + '"'
 
-def decorate_graph(graph: pydot.Graph, source: str, destination: str) -> None:
+
+def decorate_graph(graph: pydot.Graph, source: str, destination: str,
+                 distance: Dict[str, int]) -> None:
     for edge in graph.get_edges():
         edge.get_attributes()['label'] = edge.get_attributes()['length']
+
+    for node in graph.get_nodes():
+        n = node.get_name()
+        if n in distance:
+            node.get_attributes()['label'] \
+                    = '"' + n + ":" + str(distance[n]) + '"'
 
     graph.get_node(source)[0].get_attributes()['fillcolor'] = "lightblue"
     graph.get_node(source)[0].get_attributes()['style'] = "filled"
@@ -135,9 +120,10 @@ def main():
         if destination not in names:
             raise Exception("Not such node: %s" % destination)
 
-        previous, distance = dijkstra(graph, source, destination)
-        update_graph(graph, previous, distance, destination)
-        decorate_graph(graph, source, destination)
+        matrix = build_matrix(graph.get_edges())
+        trees, distances = dijkstra(matrix, source, destination)
+        update_graph(graph, trees, destination)
+        decorate_graph(graph, source, destination, distances)
 
         print(graph)
 
