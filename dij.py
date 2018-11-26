@@ -32,12 +32,8 @@ def build_matrix(edges: List[pydot.Edge]) -> Matrix:
     return matrix
 
 
-def cost_estimate(start: str, goal: str, score: float) -> float:
-    if score == 0.0:
-        return 0.0
-    if start == goal:
-        return 0.0
-    return random.uniform(0.0, score)/2
+def cost_estimate(start: str, goal: str) -> float:
+    return 0.0
 
 
 def a_star(matrix: Matrix, source: str, target: str) \
@@ -53,7 +49,7 @@ def a_star(matrix: Matrix, source: str, target: str) \
     f_score = {}
 
     g_score[source] = 0.0
-    f_score[source] = cost_estimate(source, target, 0.0)
+    f_score[source] = cost_estimate(source, target)
 
     heapq.heappush(queue, (f_score[source], source))
     open.add(source)
@@ -86,7 +82,7 @@ def a_star(matrix: Matrix, source: str, target: str) \
                 hops[neighbor] = [current]
                 g_score[neighbor] = alt
                 f_score[neighbor] = alt \
-                    + cost_estimate(neighbor, target, alt)
+                    + cost_estimate(neighbor, target)
                 heapq.heappush(queue, (f_score[neighbor], neighbor))
 
     return (hops, f_score)
@@ -117,6 +113,9 @@ def dijkstra(matrix: Matrix, source: str, target: str = None) \
         if current in matrix:
             for n in matrix[current]:
                 neighbor, distance = n
+                if neighbor in visited:
+                    continue
+
                 alt = distances.get(current, math.inf) + distance
                 if alt < distances.get(neighbor, math.inf):
                     distances[neighbor] = alt
