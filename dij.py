@@ -80,7 +80,7 @@ def a_star(matrix: Matrix, source: str, target: str) \
 
                 if neighbor not in open:
                     open.add(neighbor)
-                elif alt >= g_score.get(current, math.inf):
+                elif alt >= g_score.get(neighbor, math.inf):
                     continue
 
                 hops[neighbor] = [current]
