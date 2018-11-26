@@ -43,7 +43,7 @@ digraph sample2 {
   A -> E [length=1]
   B -> C [length=6]
   G -> C [length=12]
-  D -> C [length=3]
+  C -> D [length=3]
   D -> E [length=7]
   F -> E [length=9]
   E -> I [length=15]

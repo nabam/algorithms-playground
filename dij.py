@@ -3,6 +3,7 @@
 import heapq
 import math
 import sys
+import random
 from typing import Dict, List, Tuple
 
 import pydot
@@ -31,49 +32,109 @@ def build_matrix(edges: List[pydot.Edge]) -> Matrix:
     return matrix
 
 
+def cost_estimate(start: str, goal: str, score: float) -> float:
+    if score == 0.0:
+        return 0.0
+    if start == goal:
+        return 0.0
+    return random.uniform(0.0, score)/2
+
+
+def a_star(matrix: Matrix, source: str, target: str) \
+        -> Tuple[Dict[str, List[str]], Dict[str, int]]:
+
+    closed = set()
+    open = set()
+    queue = []
+
+    hops = {}
+
+    g_score = {}
+    f_score = {}
+
+    g_score[source] = 0.0
+    f_score[source] = cost_estimate(source, target, 0.0)
+
+    heapq.heappush(queue, (f_score[source], source))
+    open.add(source)
+
+    while queue:
+        current = heapq.heappop(queue)[1]
+
+        if current not in open:
+            continue
+
+        open.remove(current)
+        closed.add(current)
+
+        if current == target:
+            break
+
+        if current in matrix:
+            for n in matrix[current]:
+                neighbor, distance = n
+                if neighbor in closed:
+                    continue
+
+                alt = g_score.get(current, math.inf) + distance
+
+                if neighbor not in open:
+                    open.add(neighbor)
+                elif alt >= g_score.get(current, math.inf):
+                    continue
+
+                hops[neighbor] = [current]
+                g_score[neighbor] = alt
+                f_score[neighbor] = alt \
+                    + cost_estimate(neighbor, target, alt)
+                heapq.heappush(queue, (f_score[neighbor], neighbor))
+
+    return (hops, f_score)
+
+
 def dijkstra(matrix: Matrix, source: str, target: str = None) \
         -> Tuple[Dict[str, List[str]], Dict[str, int]]:
 
     queue = []
     distances = {}
-    trees = {}
+    hops = {}
     visited = set()
 
     distances[source] = 0.0
     heapq.heappush(queue, (0.0, source))
 
     while queue:
-        u = heapq.heappop(queue)[1]
+        current = heapq.heappop(queue)[1]
 
-        if u in visited:
+        if current in visited:
             continue
 
-        visited.add(u)
+        visited.add(current)
 
-        if u == target:
+        if current == target:
             break
 
-        if u in matrix:
-            for n in matrix[u]:
-                v, d = n
-                alt = distances.get(u, math.inf) + d
-                if alt < distances.get(v, math.inf):
-                    distances[v] = alt
-                    heapq.heappush(queue, (alt, v))
-                    trees[v] = [u]
-                elif alt == distances[v]:
-                    trees[v].append(u)
+        if current in matrix:
+            for n in matrix[current]:
+                neighbor, distance = n
+                alt = distances.get(current, math.inf) + distance
+                if alt < distances.get(neighbor, math.inf):
+                    distances[neighbor] = alt
+                    heapq.heappush(queue, (alt, neighbor))
+                    hops[neighbor] = [current]
+                elif alt == distances[neighbor]:
+                    hops[neighbor].append(current)
 
-    return (trees, distances)
+    return (hops, distances)
 
 
 def update_graph(graph: pydot.Graph,
-                 trees: Dict[str, List[str]],
+                 hops: Dict[str, List[str]],
                  current: str) -> None:
 
-    if current in trees:
-        for p in trees[current]:
-            update_graph(graph, trees, p)
+    if current in hops:
+        for p in hops[current]:
+            update_graph(graph, hops, p)
 
             e = graph.get_edge(p, current)[0]
             e.get_attributes()['color'] = "darkgreen"
@@ -94,7 +155,7 @@ def decorate_graph(graph: pydot.Graph, source: str, destination: str,
         n = node.get_name()
         if n in distance:
             node.get_attributes()['label'] \
-                    = '"' + n + ":" + str(distance[n]) + '"'
+                = '"{0}:{1:.2f}"'.format(n, distance[n])
 
     graph.get_node(source)[0].get_attributes()['fillcolor'] = "lightblue"
     graph.get_node(source)[0].get_attributes()['style'] = "filled"
@@ -103,16 +164,16 @@ def decorate_graph(graph: pydot.Graph, source: str, destination: str,
 
 
 def main():
+    if len(sys.argv) < 3:
+        raise Exception("Not enough arguments")
+
+    source = sys.argv[1]
+    destination = sys.argv[2]
+
     graphs = pydot.graph_from_dot_file("graph.dot", 'utf-8')
 
     for graph in graphs:
         nodes = graph.get_nodes()
-
-        if len(sys.argv) < 3:
-            raise Exception("Not enough arguments")
-
-        source = sys.argv[1]
-        destination = sys.argv[2]
 
         names = [n.get_name() for n in nodes]
         if source not in names:
@@ -121,10 +182,26 @@ def main():
             raise Exception("Not such node: %s" % destination)
 
         matrix = build_matrix(graph.get_edges())
-        trees, distances = dijkstra(matrix, source, destination)
-        update_graph(graph, trees, destination)
+        hops, distances = dijkstra(matrix, source, destination)
+        update_graph(graph, hops, destination)
         decorate_graph(graph, source, destination, distances)
 
+        gname = graph.get_name()
+        graph.set_name(gname + "_dijkstra")
+        print(graph)
+
+    graphs = pydot.graph_from_dot_file("graph.dot", 'utf-8')
+
+    for graph in graphs:
+        nodes = graph.get_nodes()
+
+        matrix = build_matrix(graph.get_edges())
+        hops, distances = a_star(matrix, source, destination)
+        update_graph(graph, hops, destination)
+        decorate_graph(graph, source, destination, distances)
+
+        gname = graph.get_name()
+        graph.set_name(gname + "_astar")
         print(graph)
 
 
