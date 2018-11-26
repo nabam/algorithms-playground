@@ -38,7 +38,7 @@ digraph sample2 {
   X
   Z
 
-  A -> B [length=1]
+  A -> B [length=1, constraint=false]
   A -> D [length=4]
   A -> E [length=1]
   B -> C [length=6]
