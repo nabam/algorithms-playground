@@ -39,8 +39,7 @@ def cost_estimate(start: str, goal: str) -> float:
 def a_star(matrix: Matrix, source: str, target: str) \
         -> Tuple[Dict[str, List[str]], Dict[str, int]]:
 
-    closed = set()
-    open = set()
+    visited = set()
     queue = []
 
     hops = {}
@@ -52,16 +51,14 @@ def a_star(matrix: Matrix, source: str, target: str) \
     f_score[source] = cost_estimate(source, target)
 
     heapq.heappush(queue, (f_score[source], source))
-    open.add(source)
 
     while queue:
         current = heapq.heappop(queue)[1]
 
-        if current not in open:
+        if current in visited:
             continue
 
-        open.remove(current)
-        closed.add(current)
+        visited.add(current)
 
         if current == target:
             break
@@ -69,14 +66,12 @@ def a_star(matrix: Matrix, source: str, target: str) \
         if current in matrix:
             for n in matrix[current]:
                 neighbor, distance = n
-                if neighbor in closed:
+                if neighbor in visited:
                     continue
 
                 alt = g_score.get(current, math.inf) + distance
 
-                if neighbor not in open:
-                    open.add(neighbor)
-                elif alt >= g_score.get(neighbor, math.inf):
+                if alt >= g_score.get(neighbor, math.inf):
                     continue
 
                 hops[neighbor] = [current]
