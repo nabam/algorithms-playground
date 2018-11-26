@@ -11,14 +11,14 @@ graph sample1 {
   Z
 
   A -- B [length=1]
+  E -- A [length=1]
   A -- D [length=4]
-  A -- E [length=1]
   B -- C [length=10]
   C -- G [length=12]
   D -- C [length=3]
   D -- E [length=7]
   E -- F [length=9]
-  E -- I [length=15]
+  F -- I [length=15]
   G -- I [length=2]
   X -- E [length=19]
   X -- A [length=11]
@@ -38,7 +38,7 @@ digraph sample2 {
   X
   Z
 
-  A -> B [length=1, constraint=false]
+  A -> B [length=1]
   A -> D [length=4]
   A -> E [length=1]
   B -> C [length=6]

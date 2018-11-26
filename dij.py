@@ -176,26 +176,12 @@ def main():
             raise Exception("Not such node: %s" % destination)
 
         matrix = build_matrix(graph.get_edges())
-        hops, distances = dijkstra(matrix, source, destination)
-        update_graph(graph, hops, destination)
-        decorate_graph(graph, source, destination, distances)
-
-        gname = graph.get_name()
-        graph.set_name(gname + "_dijkstra")
-        print(graph)
-
-    graphs = pydot.graph_from_dot_file("graph.dot", 'utf-8')
-
-    for graph in graphs:
-        nodes = graph.get_nodes()
-
-        matrix = build_matrix(graph.get_edges())
         hops, distances = a_star(matrix, source, destination)
         update_graph(graph, hops, destination)
         decorate_graph(graph, source, destination, distances)
 
         gname = graph.get_name()
-        graph.set_name(gname + "_astar")
+        graph.set_name(gname + "_dijkstra")
         print(graph)
 
 
